@@ -1,13 +1,23 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'chat/chat_message.model.dart';
 
 import 'home.page.dart';
 
 class HomePageState extends State<HomePage> {
-  static const AUTHOR = "Perin";
+  static const AUTHOR = "Anonymous user";
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _messageCtrl = TextEditingController();
   final _scrollController = new ScrollController();
+  static final _dbChatRef = Firestore.instance.collection('chat');
+
+  bool _isSendButtonEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSendButtonEnabled = true;
+  }
 
   @override
   void dispose() {
@@ -19,8 +29,11 @@ class HomePageState extends State<HomePage> {
   void _onSubmitMessageField() {
     if (_messageCtrl.text.trim().isNotEmpty) {
       setState(() {
-        widget.messages
-            .add(ChatMessageModel(_messageCtrl.text, AUTHOR, DateTime.now()));
+        _dbChatRef.add({
+          'author': AUTHOR,
+          'message': _messageCtrl.text,
+          'timestamp': DateTime.now().toIso8601String()
+        });
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _messageCtrl.clear();
           _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
@@ -29,8 +42,57 @@ class HomePageState extends State<HomePage> {
     }
   }
 
+  Widget _buildBody(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _dbChatRef.orderBy('timestamp').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return LinearProgressIndicator();
+        return _buildList(context, snapshot.data.documents);
+      },
+    );
+  }
+
+  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot) {
+    return ListView(
+      controller: _scrollController,
+      children: ListTile.divideTiles(
+              context: context,
+              tiles: snapshot.map((data) => _buildListItem(context, data)))
+          .toList(),
+    );
+  }
+
+  Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
+    final msg = ChatMessageModel.fromSnapshot(data);
+    return Dismissible(
+      key: Key(msg.createKey()),
+      direction: DismissDirection.endToStart,
+      onDismissed: (direction) {
+        _dbChatRef.document(data.documentID).delete().then((t) {
+          Scaffold.of(context).showSnackBar(SnackBar(
+            content: Text('Message deleted!'),
+            duration: Duration(seconds: 3),
+          ));
+        });
+      },
+      background: Container(color: Colors.grey),
+      child: ListTile(
+        title: Text(msg.message),
+        subtitle: Text(
+          msg.author + ' (' + msg.fmtTime() + ')',
+          style: TextStyle(fontSize: 10),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    _messageCtrl.addListener(() {
+      setState(() {
+        _isSendButtonEnabled = (_messageCtrl.text.trim().isNotEmpty);
+      });
+    });
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -46,54 +108,37 @@ class HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               margin: EdgeInsets.fromLTRB(2, 6, 2, 6),
-              child: ListView(
-                controller: _scrollController,
-                children: ListTile.divideTiles(
-                    context: context,
-                    tiles: widget.messages.map((msg) => Dismissible(
-                          key: Key(msg.createKey()),
-                          onDismissed: (direction) {
-                            setState(() => widget.messages.remove(msg));
-                            Scaffold.of(context).showSnackBar(SnackBar(
-                              content: Text('Button moved to separate widget'),
-                              duration: Duration(seconds: 3),
-                            ));
-                          },
-                          background: Container(color: Colors.grey),
-                          child: ListTile(
-                            title: Text(msg.message),
-                            subtitle: Text(
-                              msg.author + ' (' + msg.fmtTime() + ')',
-                              style: TextStyle(fontSize: 10),
-                            ),
-                          ),
-                        ))).toList(),
-              ),
+              child: _buildBody(context),
             ),
           ),
           Container(
-            child: TextField(
-              controller: _messageCtrl,
-              keyboardType: TextInputType.text,
-              textInputAction: TextInputAction.send,
-              onEditingComplete: () => _onSubmitMessageField(),
-              decoration: InputDecoration(
-                labelText: 'Place a message...',
-                hintText: 'Place a message...',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.send),
-                  onPressed: () => _onSubmitMessageField(),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey, width: 1.0),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black, width: 1.0),
-                ),
-              ),
-            ),
+            child: _buildMessageField(),
           )
         ],
+      ),
+    );
+  }
+
+  TextField _buildMessageField() {
+    return TextField(
+      controller: _messageCtrl,
+      keyboardType: TextInputType.text,
+      textInputAction: TextInputAction.send,
+      onEditingComplete: () => _onSubmitMessageField(),
+      decoration: InputDecoration(
+        labelText: 'Place a message...',
+        hintText: 'Place a message...',
+        suffixIcon: IconButton(
+          icon: Icon(Icons.send),
+          onPressed:
+              _isSendButtonEnabled ? () => _onSubmitMessageField() : null,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey, width: 1.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.black, width: 1.0),
+        ),
       ),
     );
   }
