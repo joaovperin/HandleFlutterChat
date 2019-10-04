@@ -7,7 +7,6 @@ class HomePage extends StatefulWidget {
   HomePage({Key key, this.title}) : super(key: key);
 
   final String title;
-  final List<ChatMessageModel> messages = [];
 
   @override
   HomePageState createState() => HomePageState();
