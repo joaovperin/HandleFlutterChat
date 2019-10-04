@@ -53,12 +53,15 @@ class HomePageState extends State<HomePage> {
   }
 
   Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot) {
-    return ListView(
-      controller: _scrollController,
-      children: ListTile.divideTiles(
-              context: context,
-              tiles: snapshot.map((data) => _buildListItem(context, data)))
-          .toList(),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
+      child: ListView(
+        controller: _scrollController,
+        children: ListTile.divideTiles(
+                context: context,
+                tiles: snapshot.map((data) => _buildListItem(context, data)))
+            .toList(),
+      ),
     );
   }
 
