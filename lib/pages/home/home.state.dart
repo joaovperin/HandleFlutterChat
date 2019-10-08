@@ -36,10 +36,15 @@ class HomePageState extends State<HomePage> {
         });
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _messageCtrl.clear();
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          _scrollToEnd();
         });
       });
     }
+  }
+
+  void _scrollToEnd() {
+    _scrollController.animateTo(_scrollController.position.maxScrollExtent,
+        duration: Duration(seconds: 2), curve: Curves.fastLinearToSlowEaseIn);
   }
 
   Widget _buildBody(BuildContext context) {
@@ -72,10 +77,12 @@ class HomePageState extends State<HomePage> {
       direction: DismissDirection.endToStart,
       onDismissed: (direction) {
         _dbChatRef.document(data.documentID).delete().then((t) {
-          Scaffold.of(context).showSnackBar(SnackBar(
-            content: Text('Message deleted!'),
-            duration: Duration(seconds: 3),
-          ));
+          Scaffold.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(
+              content: Text('Message deleted!'),
+              duration: Duration(seconds: 2),
+            ));
         });
       },
       background: Container(color: Colors.grey),
@@ -118,6 +125,11 @@ class HomePageState extends State<HomePage> {
             child: _buildMessageField(),
           )
         ],
+      ),
+      floatingActionButton: Container(
+        margin: EdgeInsets.only(bottom: 60),
+        child: FloatingActionButton(
+            child: Icon(Icons.arrow_downward), onPressed: _scrollToEnd),
       ),
     );
   }
