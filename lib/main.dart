@@ -10,6 +10,7 @@ class HandleChatApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Handle Chat',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
           primarySwatch: Colors.amber,
           accentColor: Colors.indigoAccent,

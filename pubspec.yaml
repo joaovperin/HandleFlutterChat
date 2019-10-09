@@ -79,6 +79,6 @@ flutter:
 
 
 flutter_icons:
-  image_path: "assets/icons/ic_launcher.png"
+  image_path: "assets/ic_launcher.png"
   android: "launcher_icon"
   ios: true
