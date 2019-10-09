@@ -51,7 +51,8 @@ class HomePageState extends State<HomePage> {
     return StreamBuilder<QuerySnapshot>(
       stream: _dbChatRef.orderBy('timestamp').snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return LinearProgressIndicator();
+        if (!snapshot.hasData)
+          return Center(child: CircularProgressIndicator());
         return _buildList(context, snapshot.data.documents);
       },
     );
