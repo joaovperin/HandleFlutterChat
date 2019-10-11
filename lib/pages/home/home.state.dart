@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'chat/chat_message.model.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'home.page.dart';
 
@@ -73,6 +74,7 @@ class HomePageState extends State<HomePage> {
 
   Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
     final msg = ChatMessageModel.fromSnapshot(data);
+    final isHyperlink = (msg.message.startsWith("http"));
     return Dismissible(
       key: Key(msg.createKey()),
       direction: DismissDirection.endToStart,
@@ -88,7 +90,11 @@ class HomePageState extends State<HomePage> {
       },
       background: Container(color: Colors.grey),
       child: ListTile(
-        title: Text(msg.message),
+        title: isHyperlink
+            ? InkWell(
+                child: Text(msg.message, style: TextStyle(color: Colors.blue)),
+                onTap: () => launch(msg.message))
+            : Text(msg.message),
         subtitle: Text(
           msg.author + ' (' + msg.fmtTime() + ')',
           style: TextStyle(fontSize: 10),
