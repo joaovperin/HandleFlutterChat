@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:handle_flutter_chat/pages/baby/baby.page.dart';
 import 'package:handle_flutter_chat/pages/home/home.page.dart';
 
 void main() => runApp(HandleChatApp());

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:handle_flutter_chat/pages/home/chat/chat_message.model.dart';
 
 import 'home.state.dart';
 

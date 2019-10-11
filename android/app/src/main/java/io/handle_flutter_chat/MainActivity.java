@@ -1,4 +1,4 @@
-package io.handlechat.handle_flutter_chat;
+package io.handle_flutter_chat;
 
 import android.os.Bundle;
 import io.flutter.app.FlutterActivity;
