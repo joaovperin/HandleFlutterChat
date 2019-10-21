@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:handle_flutter_chat/core/ui/dialogs/dialogs.service.dart';
+import 'package:handle_flutter_chat/core/users/users.service.dart';
 import 'chat/chat_message.model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'home.page.dart';
 
 class HomePageState extends State<HomePage> {
-  static const AUTHOR = "Anonymous user";
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _messageCtrl = TextEditingController();
   final _scrollController = new ScrollController();
@@ -27,82 +28,6 @@ class HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  void _onSubmitMessageField() {
-    if (_messageCtrl.text.trim().isNotEmpty) {
-      setState(() {
-        _dbChatRef.add({
-          'author': AUTHOR,
-          'message': _messageCtrl.text,
-          'timestamp': DateTime.now().toIso8601String()
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _messageCtrl.clear();
-          _scrollToEnd();
-        });
-      });
-    }
-  }
-
-  void _scrollToEnd() {
-    _scrollController.animateTo(_scrollController.position.maxScrollExtent,
-        duration: Duration(seconds: 2), curve: Curves.fastLinearToSlowEaseIn);
-  }
-
-  Widget _buildBody(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _dbChatRef.orderBy('timestamp').snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData)
-          return Center(child: CircularProgressIndicator());
-        return _buildList(context, snapshot.data.documents);
-      },
-    );
-  }
-
-  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
-      child: ListView(
-        controller: _scrollController,
-        children: ListTile.divideTiles(
-                context: context,
-                tiles: snapshot.map((data) => _buildListItem(context, data)))
-            .toList(),
-      ),
-    );
-  }
-
-  Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
-    final msg = ChatMessageModel.fromSnapshot(data);
-    final isHyperlink = (msg.message.startsWith("http"));
-    return Dismissible(
-      key: Key(msg.createKey()),
-      direction: DismissDirection.endToStart,
-      onDismissed: (direction) {
-        _dbChatRef.document(data.documentID).delete().then((t) {
-          Scaffold.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(
-              content: Text('Message deleted!'),
-              duration: Duration(seconds: 2),
-            ));
-        });
-      },
-      background: Container(color: Colors.grey),
-      child: ListTile(
-        title: isHyperlink
-            ? InkWell(
-                child: Text(msg.message, style: TextStyle(color: Colors.blue)),
-                onTap: () => launch(msg.message))
-            : Text(msg.message),
-        subtitle: Text(
-          msg.author + ' (' + msg.fmtTime() + ')',
-          style: TextStyle(fontSize: 10),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     _messageCtrl.addListener(() {
@@ -113,6 +38,12 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.power_settings_new),
+            onPressed: () => _onPressedLogout(context),
+          )
+        ],
       ),
       body: Column(
         key: _formKey,
@@ -141,6 +72,62 @@ class HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildBody(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _dbChatRef.orderBy('timestamp').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData)
+          return Center(child: CircularProgressIndicator());
+        return _buildList(context, snapshot.data.documents);
+      },
+    );
+  }
+
+  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot) {
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
+      child: ListView(
+        controller: _scrollController,
+        children: ListTile.divideTiles(
+                context: context,
+                tiles: snapshot.map((data) => _buildListItem(context, data)))
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
+    final msg = ChatMessageModel.fromSnapshot(data);
+    final isHyperlink =
+        (msg.message.startsWith("http:") && msg.message.contains('.'));
+    return Dismissible(
+      key: Key(msg.createKey()),
+      direction: DismissDirection.endToStart,
+      onDismissed: (direction) {
+        _dbChatRef.document(data.documentID).delete().then((t) {
+          Scaffold.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(
+              content: Text('Message deleted!'),
+              duration: Duration(seconds: 2),
+            ));
+        });
+      },
+      background: Container(color: Colors.grey),
+      child: ListTile(
+        title: isHyperlink
+            ? InkWell(
+                child: Text(msg.message, style: TextStyle(color: Colors.blue)),
+                onTap: () => launch(msg.message))
+            : Text(msg.message),
+        subtitle: Text(
+          msg.author + ' (' + msg.fmtTime() + ')',
+          style: TextStyle(fontSize: 10),
+        ),
+      ),
+    );
+  }
+
   TextField _buildMessageField() {
     return TextField(
       controller: _messageCtrl,
@@ -163,5 +150,41 @@ class HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  void _onSubmitMessageField() {
+    if (_messageCtrl.text.trim().isNotEmpty) {
+      setState(() {
+        _dbChatRef.add({
+          'author': widget.dname ?? 'XXXX',
+          'authoruuid': widget.uid,
+          'message': _messageCtrl.text,
+          'timestamp': DateTime.now().toIso8601String()
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _messageCtrl.clear();
+          _scrollToEnd();
+        });
+      });
+    }
+  }
+
+  void _scrollToEnd() {
+    _scrollController.animateTo(_scrollController.position.maxScrollExtent,
+        duration: Duration(seconds: 2), curve: Curves.fastLinearToSlowEaseIn);
+  }
+
+  void _onPressedLogout(context) {
+    DialogsService.confirmText(
+      context,
+      'Hey',
+      'Do you really want to logout?',
+    ).then((confirm) {
+      if (confirm) {
+        UserService.logout().then((_) {
+          Navigator.pushReplacementNamed(context, "/login");
+        });
+      }
+    });
   }
 }

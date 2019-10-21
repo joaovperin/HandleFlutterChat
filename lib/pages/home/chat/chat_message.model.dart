@@ -5,6 +5,7 @@ class ChatMessageModel {
   static final timeFormatter = new DateFormat("HH:mm:ss");
 
   final String author;
+  final String authoruuid;
   final String message;
   final DateTime timestamp;
 
@@ -16,7 +17,8 @@ class ChatMessageModel {
         assert(map['timestamp'] != null),
         author = map['author'],
         message = map['message'],
-        timestamp = DateTime.parse(map['timestamp']);
+        timestamp = DateTime.parse(map['timestamp']),
+        authoruuid = map['authoruuid'] ?? 'null';
 
   ChatMessageModel.fromSnapshot(DocumentSnapshot snapshot)
       : this.fromMap(snapshot.data, reference: snapshot.reference);
