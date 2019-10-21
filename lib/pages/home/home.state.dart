@@ -98,9 +98,16 @@ class HomePageState extends State<HomePage> {
 
   Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
     final msg = ChatMessageModel.fromSnapshot(data);
-    final isHyperlink =
-        (msg.message.startsWith("http:") && msg.message.contains('.'));
+    final isHyperlink = _isHyperlink(msg?.message);
     return Dismissible(
+      confirmDismiss: (direction) async {
+        if (widget.uid != msg.authoruuid) {
+          DialogsService.errorText(context,
+              message: "You can't delete other's person's message!");
+          return false;
+        }
+        return true;
+      },
       key: Key(msg.createKey()),
       direction: DismissDirection.endToStart,
       onDismissed: (direction) {
@@ -129,14 +136,15 @@ class HomePageState extends State<HomePage> {
   }
 
   TextField _buildMessageField() {
+    final _placeAMessage = 'Place a message...';
     return TextField(
       controller: _messageCtrl,
       keyboardType: TextInputType.text,
       textInputAction: TextInputAction.send,
       onEditingComplete: () => _onSubmitMessageField(),
       decoration: InputDecoration(
-        labelText: 'Place a message...',
-        hintText: 'Place a message...',
+        labelText: _placeAMessage,
+        hintText: _placeAMessage,
         suffixIcon: IconButton(
           icon: Icon(Icons.send),
           onPressed:
@@ -186,5 +194,9 @@ class HomePageState extends State<HomePage> {
         });
       }
     });
+  }
+
+  bool _isHyperlink(String text) {
+    return RegExp(r'http|\w+\.\w+').hasMatch(text);
   }
 }
