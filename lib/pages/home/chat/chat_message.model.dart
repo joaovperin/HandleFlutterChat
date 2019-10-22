@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class ChatMessageModel {
-  static final timeFormatter = new DateFormat("HH:mm:ss");
+  static final timeFormatter = new DateFormat("HH:mm");
+  static final dateTimeFormatter = new DateFormat("dd/MM/yyyy - HH:mm");
 
   final String author;
   final String authoruuid;
@@ -24,7 +25,11 @@ class ChatMessageModel {
       : this.fromMap(snapshot.data, reference: snapshot.reference);
 
   String fmtTime() {
-    return timeFormatter.format(timestamp);
+    // If same day, omit hours
+    if (timestamp.day == DateTime.now().day) {
+      return timeFormatter.format(timestamp);
+    }
+    return dateTimeFormatter.format(timestamp);
   }
 
   String createKey() {
