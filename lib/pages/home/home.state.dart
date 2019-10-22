@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:handle_flutter_chat/core/ui/dialogs/dialogs.service.dart';
 import 'package:handle_flutter_chat/core/users/users.service.dart';
@@ -13,12 +14,15 @@ class HomePageState extends State<HomePage> {
   final _scrollController = new ScrollController();
   static final _dbChatRef = Firestore.instance.collection('chat');
 
+  static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
+
   bool _isSendButtonEnabled = true;
 
   @override
   void initState() {
     super.initState();
     _isSendButtonEnabled = true;
+    attachFirebaseCloudMessagingListeners();
   }
 
   @override
@@ -210,5 +214,22 @@ class HomePageState extends State<HomePage> {
 
   bool _isHyperlink(String text) {
     return RegExp(r'http|\w+\.\w+').hasMatch(text);
+  }
+
+  void attachFirebaseCloudMessagingListeners() {
+    _firebaseMessaging.configure(
+      onMessage: (Map<String, dynamic> message) async {
+        print('on message $message');
+      },
+      onResume: (Map<String, dynamic> message) async {
+        print('on resume $message');
+      },
+      onLaunch: (Map<String, dynamic> message) async {
+        print('on launch $message');
+      },
+    );
+    _firebaseMessaging.getToken().then((token) {
+      print('token $token');
+    });
   }
 }
