@@ -74,7 +74,7 @@ class HomePageState extends State<HomePage> {
 
   Widget _buildBody(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _dbChatRef.orderBy('timestamp').snapshots(),
+      stream: _dbChatRef.orderBy('serverTimestamp').limit(200).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData)
           return Center(child: CircularProgressIndicator());
@@ -98,7 +98,6 @@ class HomePageState extends State<HomePage> {
 
   Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
     final msg = ChatMessageModel.fromSnapshot(data);
-    final isHyperlink = _isHyperlink(msg?.message);
     return Dismissible(
       confirmDismiss: (direction) async {
         if (widget.uid != msg.authoruuid) {
@@ -121,18 +120,30 @@ class HomePageState extends State<HomePage> {
         });
       },
       background: Container(color: Colors.grey),
-      child: ListTile(
+      child: _buildMessageTile(msg),
+    );
+  }
+
+  ListTile _buildMessageTile(ChatMessageModel msg) {
+    // Author widget
+    var _children = <Widget>[
+      Text(msg.author + ' (' + msg.fmtTime() + ')',
+          style: TextStyle(fontSize: 10))
+    ];
+    // If the message is not on the server, add a warning icon
+    if (!msg.hasServerTimestamp) {
+      _children.add(Icon(Icons.warning, size: 12));
+    }
+    final isHyperlink = _isHyperlink(msg?.message);
+    return ListTile(
         title: isHyperlink
             ? InkWell(
                 child: Text(msg.message, style: TextStyle(color: Colors.blue)),
                 onTap: () => launch(msg.message))
             : Text(msg.message),
-        subtitle: Text(
-          msg.author + ' (' + msg.fmtTime() + ')',
-          style: TextStyle(fontSize: 10),
-        ),
-      ),
-    );
+        subtitle: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: _children));
   }
 
   TextField _buildMessageField() {
@@ -167,7 +178,8 @@ class HomePageState extends State<HomePage> {
           'author': widget.dname ?? 'XXXX',
           'authoruuid': widget.uid,
           'message': _messageCtrl.text,
-          'timestamp': DateTime.now().toIso8601String()
+          'timestamp': DateTime.now().toIso8601String(),
+          'serverTimestamp': FieldValue.serverTimestamp()
         });
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _messageCtrl.clear();

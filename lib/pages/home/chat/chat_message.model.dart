@@ -8,6 +8,7 @@ class ChatMessageModel {
   final String author;
   final String authoruuid;
   final String message;
+  final DateTime serverTimestamp;
   final DateTime timestamp;
 
   final DocumentReference reference;
@@ -18,11 +19,15 @@ class ChatMessageModel {
         assert(map['timestamp'] != null),
         author = map['author'],
         message = map['message'],
-        timestamp = DateTime.parse(map['timestamp']),
-        authoruuid = map['authoruuid'] ?? 'null';
+        authoruuid = map['authoruuid'],
+        serverTimestamp = map['serverTimestamp']?.toDate(),
+        timestamp = map['serverTimestamp']?.toDate() ??
+            DateTime.parse(map['timestamp']);
 
   ChatMessageModel.fromSnapshot(DocumentSnapshot snapshot)
       : this.fromMap(snapshot.data, reference: snapshot.reference);
+
+  bool get hasServerTimestamp => serverTimestamp != null;
 
   String fmtTime() {
     // If same day, omit hours
